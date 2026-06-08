@@ -1,6 +1,6 @@
 # SI Soluções Imobiliárias — Backend
 
-API REST desenvolvida em **NestJS** para gerenciamento de leads imobiliários.
+API REST desenvolvida em **NestJS** para gerenciamento de leads imobiliários, com autenticação JWT, regras de negócio e comunicação com o microsserviço de IA.
 
 ## 🛠 Tecnologias
 
@@ -13,34 +13,72 @@ API REST desenvolvida em **NestJS** para gerenciamento de leads imobiliários.
 | JWT | via @nestjs/jwt |
 | Swagger | via @nestjs/swagger |
 
-## 📋 Pré-requisitos
+## 📁 Estrutura
 
-- Node.js 20+
-- MySQL 8+ rodando localmente ou via Docker
-- npm ou yarn
+```
+src/
+├── auth/          # Autenticação JWT + bcrypt
+├── leads/         # CRUD de leads, Kanban, exportação CSV
+├── users/         # Gerenciamento de usuários
+├── dashboard/     # Métricas e estatísticas
+├── ai/            # Proxy para o microsserviço de IA
+└── prisma/        # Conexão com banco de dados
+```
 
-## ⚙️ Configuração
+## 🚀 Como rodar
+
+### Opção A — Docker (recomendado)
+
+> Os 3 repositórios devem estar na mesma pasta pai:
+> ```
+> GitHub/
+> ├── si-leads-backend/   ← docker-compose.yml está aqui
+> ├── si-leads-frontend/
+> └── si-leads-ai/
+> ```
 
 ```bash
-# 1. Clone o repositório
-git clone https://github.com/seu-usuario/si-leads-backend
+# 1. Configure as variáveis de ambiente
+cp .env.example .env
+# Edite o .env e preencha sua GROQ_API_KEY
 
-# 2. Instale as dependências
+# 2. Suba todos os serviços
+docker-compose up --build
+
+# 3. (Apenas na primeira vez) Crie as tabelas e popule o banco
+docker exec si_backend npx prisma db push
+docker exec si_backend npx ts-node prisma/seed.ts
+```
+
+Acesse **http://localhost:3000** no navegador.
+
+**Credenciais de demo:**
+- `admin@si.com.br` / `admin123`
+- `agente@si.com.br` / `admin123`
+
+### Opção B — Manual (sem Docker)
+
+**Pré-requisitos:** Node.js 20+, MySQL 8 rodando localmente
+
+```bash
+# 1. Instale as dependências
 npm install
 
-# 3. Configure as variáveis de ambiente
+# 2. Configure o ambiente
 cp .env.example .env
-# Edite o .env com suas credenciais
+# Edite DATABASE_URL com suas credenciais locais do MySQL
 
-# 4. Rode as migrations do banco
-npx prisma migrate dev --name init
+# 3. Crie as tabelas
+npx prisma db push
 
-# 5. (Opcional) Popule o banco com dados de exemplo
+# 4. (Opcional) Popule com dados de exemplo
 npm run prisma:seed
 
-# 6. Inicie o servidor
+# 5. Inicie o servidor
 npm run start:dev
 ```
+
+API disponível em `http://localhost:3001`
 
 ## 🌐 Endpoints principais
 
@@ -49,38 +87,34 @@ npm run start:dev
 | POST | /auth/register | Cadastrar usuário |
 | POST | /auth/login | Login |
 | GET | /auth/me | Usuário autenticado |
-| GET | /leads | Listar leads (com filtros) |
+| GET | /leads | Listar leads (filtros + paginação) |
 | GET | /leads/kanban | Leads agrupados por status |
+| GET | /leads/export/csv | Exportar CSV |
 | POST | /leads | Criar lead |
 | PATCH | /leads/:id | Atualizar lead |
 | DELETE | /leads/:id | Deletar lead |
-| GET | /leads/export/csv | Exportar CSV |
-| GET | /dashboard/metrics | Métricas do sistema |
+| GET | /dashboard/metrics | Métricas gerais |
 | POST | /ai/chat | Enviar mensagem ao ChatBot |
 
-📚 **Documentação Swagger**: `http://localhost:3001/api/docs`
+📚 **Swagger:** `http://localhost:3001/api/docs`
 
 ## 🔐 Variáveis de ambiente
 
-| Variável | Descrição | Exemplo |
-|---|---|---|
-| `DATABASE_URL` | String de conexão MySQL | `mysql://root:root@localhost:3306/si_leads` |
-| `JWT_SECRET` | Chave secreta JWT | `minha_chave_super_secreta` |
-| `JWT_EXPIRES_IN` | Expiração do token | `7d` |
-| `PORT` | Porta do servidor | `3001` |
-| `FRONTEND_URL` | URL do frontend (CORS) | `http://localhost:3000` |
-| `AI_SERVICE_URL` | URL do microsserviço de IA | `http://localhost:8000` |
-
-## 🐳 Docker
-
-```bash
-docker build -t si-leads-backend .
-docker run -p 3001:3001 --env-file .env si-leads-backend
-```
-
-Ou use o `docker-compose.yml` na raiz do projeto.
+| Variável | Descrição |
+|---|---|
+| `DATABASE_URL` | String de conexão MySQL |
+| `MYSQL_ROOT_PASSWORD` | Senha root do MySQL (Docker) |
+| `MYSQL_DATABASE` | Nome do banco (Docker) |
+| `MYSQL_USER` | Usuário do banco (Docker) |
+| `MYSQL_PASSWORD` | Senha do usuário (Docker) |
+| `JWT_SECRET` | Chave secreta para tokens JWT |
+| `JWT_EXPIRES_IN` | Tempo de expiração do token (ex: `7d`) |
+| `PORT` | Porta do servidor (padrão: `3001`) |
+| `FRONTEND_URL` | URL do frontend para CORS |
+| `AI_SERVICE_URL` | URL do microsserviço de IA |
+| `GROQ_API_KEY` | Chave da API Groq |
 
 ## 🔗 Integração com outros serviços
 
-- **Frontend**: Consome esta API via HTTP em `http://localhost:3001`
-- **Microsserviço de IA**: Esta API faz proxy para `AI_SERVICE_URL/chat`
+- **Frontend** (`si-leads-frontend`): consome esta API em `http://localhost:3001`
+- **Microsserviço de IA** (`si-leads-ai`): esta API faz proxy em `POST /ai/chat`
