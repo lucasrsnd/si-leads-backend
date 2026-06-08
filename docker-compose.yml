@@ -1,0 +1,68 @@
+version: '3.9'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: si_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-si_leads}
+      MYSQL_USER: ${MYSQL_USER:-si_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-si_pass}
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: si_backend
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER:-si_user}:${MYSQL_PASSWORD:-si_pass}@db:3306/${MYSQL_DATABASE:-si_leads}
+      JWT_SECRET: ${JWT_SECRET:-mude_esta_chave_em_producao}
+      JWT_EXPIRES_IN: 7d
+      PORT: 3001
+      FRONTEND_URL: http://localhost:3000
+      AI_SERVICE_URL: http://ai:8000
+    depends_on:
+      db:
+        condition: service_healthy
+
+  ai:
+    build:
+      context: ../si-leads-ai
+      dockerfile: Dockerfile
+    container_name: si_ai
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
+
+  frontend:
+    build:
+      context: ../si-leads-frontend
+      dockerfile: Dockerfile
+    container_name: si_frontend
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
