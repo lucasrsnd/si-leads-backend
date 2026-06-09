@@ -36,28 +36,39 @@ export class LeadsController {
   @ApiOperation({ summary: "Listar leads com filtros e paginação" })
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "status", required: false, enum: LeadStatus })
+  @ApiQuery({ name: "myLeads", required: false, type: Boolean })
   @ApiQuery({ name: "page", required: false, type: Number })
   @ApiQuery({ name: "limit", required: false, type: Number })
   findAll(
     @Query("search") search?: string,
     @Query("status") status?: LeadStatus,
+    @Query("myLeads") myLeads?: string,
     @Query("page") page?: number,
     @Query("limit") limit?: number,
+    @Request() req?: any,
   ) {
-    return this.leads.findAll({ search, status, page, limit });
+    return this.leads.findAll({
+      search,
+      status,
+      myLeads: myLeads === "true",
+      userId: req.user.id,
+      page,
+      limit,
+    });
   }
 
   @Get("kanban")
   @ApiOperation({ summary: "Retorna leads agrupados por status (Kanban)" })
-  kanban() {
-    return this.leads.getKanban();
+  @ApiQuery({ name: "myLeads", required: false, type: Boolean })
+  kanban(@Query("myLeads") myLeads?: string, @Request() req?: any) {
+    return this.leads.getKanban(myLeads === "true", req.user.id);
   }
 
   @Get("export/csv")
   @ApiOperation({ summary: "Exportar leads em CSV" })
   async exportCsv(@Res() res: Response) {
     const csv = await this.leads.exportCsv();
-    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", "attachment; filename=leads.csv");
     res.status(HttpStatus.OK).send(csv);
   }

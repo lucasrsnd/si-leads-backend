@@ -11,14 +11,17 @@ export class LeadsService {
   async findAll(query: {
     search?: string;
     status?: LeadStatus;
+    myLeads?: boolean;
+    userId?: string;
     page?: number;
     limit?: number;
   }) {
-    const { search, status, page = 1, limit = 50 } = query;
+    const { search, status, myLeads, userId, page = 1, limit = 50 } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};
     if (status) where.status = status;
+    if (myLeads && userId) where.userId = userId;
     if (search) {
       where.OR = [
         { name: { contains: search } },
@@ -75,8 +78,8 @@ export class LeadsService {
 
   async update(id: string, dto: UpdateLeadDto, updatedById: string) {
     await this.findOne(id);
-
     const previous = await this.prisma.lead.findUnique({ where: { id } });
+
     const lead = await this.prisma.lead.update({
       where: { id },
       data: dto,
@@ -102,11 +105,13 @@ export class LeadsService {
     return { message: "Lead removido com sucesso" };
   }
 
-  async getKanban() {
+  async getKanban(myLeads?: boolean, userId?: string) {
+    const where: any = {};
+    if (myLeads && userId) where.userId = userId;
+
     const leads = await this.prisma.lead.findMany({
-      include: {
-        assignedTo: { select: { id: true, name: true } },
-      },
+      where,
+      include: { assignedTo: { select: { id: true, name: true } } },
       orderBy: { updatedAt: "desc" },
     });
 
@@ -153,6 +158,7 @@ export class LeadsService {
       l.createdAt.toISOString().split("T")[0],
     ]);
 
-    return [header, ...rows].map((row) => row.join(",")).join("\n");
+    const bom = "\uFEFF";
+    return bom + [header, ...rows].map((row) => row.join(";")).join("\n");
   }
 }
