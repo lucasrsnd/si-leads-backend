@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateLeadDto } from './dto/create-lead.dto';
-import { UpdateLeadDto } from './dto/update-lead.dto';
-import { LeadStatus } from '@prisma/client';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { CreateLeadDto } from "./dto/create-lead.dto";
+import { UpdateLeadDto } from "./dto/update-lead.dto";
+import { LeadStatus } from "@prisma/client";
 
 @Injectable()
 export class LeadsService {
@@ -36,7 +36,7 @@ export class LeadsService {
           assignedTo: { select: { id: true, name: true, email: true } },
           _count: { select: { activities: true } },
         },
-        orderBy: { updatedAt: 'desc' },
+        orderBy: { updatedAt: "desc" },
       }),
       this.prisma.lead.count({ where }),
     ]);
@@ -49,7 +49,7 @@ export class LeadsService {
       where: { id },
       include: {
         assignedTo: { select: { id: true, name: true, email: true } },
-        activities: { orderBy: { createdAt: 'desc' } },
+        activities: { orderBy: { createdAt: "desc" } },
       },
     });
     if (!lead) throw new NotFoundException(`Lead ${id} não encontrado`);
@@ -65,7 +65,7 @@ export class LeadsService {
     await this.prisma.activity.create({
       data: {
         leadId: lead.id,
-        type: 'CRIACAO',
+        type: "CRIACAO",
         message: `Lead criado por ${createdById}`,
       },
     });
@@ -87,7 +87,7 @@ export class LeadsService {
       await this.prisma.activity.create({
         data: {
           leadId: id,
-          type: 'STATUS',
+          type: "STATUS",
           message: `Status alterado de ${previous?.status} para ${dto.status}`,
         },
       });
@@ -99,7 +99,7 @@ export class LeadsService {
   async remove(id: string) {
     await this.findOne(id);
     await this.prisma.lead.delete({ where: { id } });
-    return { message: 'Lead removido com sucesso' };
+    return { message: "Lead removido com sucesso" };
   }
 
   async getKanban() {
@@ -107,7 +107,7 @@ export class LeadsService {
       include: {
         assignedTo: { select: { id: true, name: true } },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { updatedAt: "desc" },
     });
 
     const columns: Record<string, any[]> = {
@@ -129,21 +129,30 @@ export class LeadsService {
   async exportCsv() {
     const leads = await this.prisma.lead.findMany({
       include: { assignedTo: { select: { name: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
-    const header = ['Nome', 'Email', 'Telefone', 'Status', 'Fonte', 'Prioridade', 'Responsável', 'Criado em'];
+    const header = [
+      "Nome",
+      "Email",
+      "Telefone",
+      "Status",
+      "Fonte",
+      "Prioridade",
+      "Responsável",
+      "Criado em",
+    ];
     const rows = leads.map((l) => [
       l.name,
-      l.email ?? '',
-      l.phone ?? '',
+      l.email ?? "",
+      l.phone ?? "",
       l.status,
-      l.source ?? '',
+      l.source ?? "",
       l.priority,
-      l.assignedTo?.name ?? '',
-      l.createdAt.toISOString().split('T')[0],
+      l.assignedTo?.name ?? "",
+      l.createdAt.toISOString().split("T")[0],
     ]);
 
-    return [header, ...rows].map((row) => row.join(',')).join('\n');
+    return [header, ...rows].map((row) => row.join(",")).join("\n");
   }
 }

@@ -1,19 +1,26 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeadStatus, Source, Priority } from '@prisma/client';
-import { IsString, IsOptional, IsEmail, IsEnum, IsPhoneNumber, MinLength } from 'class-validator';
+import { ApiProperty } from "@nestjs/swagger";
+import { LeadStatus, Source, Priority } from "@prisma/client";
+import {
+  IsString,
+  IsOptional,
+  IsEmail,
+  IsEnum,
+  IsPhoneNumber,
+  MinLength,
+} from "class-validator";
 
 export class CreateLeadDto {
-  @ApiProperty({ example: 'Carlos Mendes' })
+  @ApiProperty({ example: "Carlos Mendes" })
   @IsString()
   @MinLength(2)
   name: string;
 
-  @ApiProperty({ required: false, example: 'carlos@email.com' })
+  @ApiProperty({ required: false, example: "carlos@email.com" })
   @IsOptional()
   @IsEmail()
   email?: string;
 
-  @ApiProperty({ required: false, example: '(31) 99801-2345' })
+  @ApiProperty({ required: false, example: "(31) 99801-2345" })
   @IsOptional()
   @IsString()
   phone?: string;
